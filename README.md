@@ -1,45 +1,58 @@
-# Artifact-chain template
+# Week 2: Chat client
 
-Starting point for major project submissions in CPSC 415 (AI Integration, Trinity College). Click **Use this template** on GitHub to create your own repository from it. Do not fork.
+Ethan Ambrossi · CPSC 415
 
-The course follows Anthropic's [AI-Native SDLC Playbook](https://claude.com/blog/the-ai-native-sdlc-playbook): every stage of the work leaves a short, version-controlled artifact. The agent writes most of the code. You decide what gets built, steer, verify, and explain every choice. These files are how you prove you understood what the agent built.
+`chat.py` sends one question to a model through OpenRouter. It prints the answer, starting with "Sir,", and then a line with the model name and the input and output token counts. It uses only the Python standard library.
 
-## Early labs
+## How to run it
 
-Week 1 uses the minimal repository described in the course handout. Later introductory labs complete only the stages assigned so far. This template describes the full chain for team projects and the final portfolio; it does not require unintroduced artifacts in Week 1. Project languages are chosen and justified, with one separate guided exercise in an unfamiliar language.
+```bash
+export CHAT_BASE_URL=https://openrouter.ai/api/v1
+export CHAT_MODEL=qwen/qwen3.8-27b:free
+export OPENROUTER_API_KEY=...   # your key; never commit it
+python3 chat.py "In one sentence, what is a context window?"
+```
 
-## The chain
+Example output:
 
-| Stage | File | Written by | Approved by |
+```
+Sir, A context window is the maximum amount of text an AI model can process at one time.
+
+model: qwen/qwen3.8-27b:free | input tokens: 67 | output tokens: 1448
+```
+
+To use a different model, change only `CHAT_MODEL`.
+
+**If you get `CERTIFICATE_VERIFY_FAILED` on macOS:** the python.org installer doesn't set up certificates. Either run `/Applications/Python 3.13/Install Certificates.command` once, or point Python at the macOS system bundle with `export SSL_CERT_FILE=/etc/ssl/cert.pem`. The runs in `CHECKS.md` used the second option.
+
+## Changes to the intent draft
+
+1. **It calls me "sir."** The draft had nothing like this. I want every answer to start with "sir," so I added it as a success criterion. The program adds "Sir, " in code rather than asking the model in the system prompt, so it happens every time even if the model ignores instructions.
+2. **OpenRouter only, no local model.** The draft left open whether I'd try Ollama and which key variable the program should read. I removed that question and put local models under "Not in scope." Everything goes through OpenRouter and reads `OPENROUTER_API_KEY`.
+
+After approval, the build changed `max_tokens` from 1000 to 4000. At 1000, Qwen used all 1000 tokens on hidden reasoning and returned an empty answer. The intent records this change and why.
+
+## One line of the code
+
+```python
+usage = data.get("usage", {})
+```
+
+`chat.py:72`: `data` is the parsed JSON response from `/chat/completions`. The `usage` object is where the provider reports what the call cost in tokens: `prompt_tokens` is what I sent (system message plus question), and `completion_tokens` is what the model generated, including hidden reasoning. The last line prints these two numbers, and they are what I compared against OpenRouter's record. `.get(..., {})` means that if a provider leaves out `usage`, the program prints `None` instead of crashing.
+
+## Two models, one question
+
+| Model | Answer | Tokens (in / out) | Observed cost |
 |---|---|---|---|
-| Plan | `intent/<name>.md` | The agent, after interviewing you | You |
-| Design | `spec.md` | The agent, from the approved intent | You, against the intent |
-| Build | `plan.md`, then code on a branch | The agent | You, before any code |
-| Test | tests, lint, CI | The agent | You confirm the loop actually ran |
-| Deploy | a pull request reviewed against `REVIEW.md` | A separate reviewing agent | You merge |
-| Maintain | a new `intent/<name>.md` | Triggered by a bug, a ticket, or a model change | You triage |
+| `qwen/qwen3.8-27b:free` | "A context window is the maximum amount of text an AI model can process at one time." | 67 / 1448 (1429 reasoning) | $0 (free model) |
+| `nvidia/nemotron-3-super-120b-a12b:free` | "A context window is the fixed-size span of tokens (such as words or subword units) that a language model can simultaneously attend to when processing or generating text." | 30 / 82 (54 reasoning) | $0 (free model) |
 
-`CLAUDE.md` and `REVIEW.md` travel with the repo and are graded artifacts.
+Qwen gave a plain-language answer, and Nemotron gave a more technical one that talks about tokens. On this one question, Qwen spent far more tokens reasoning before it answered. Both costs were $0 because both are free models. Costs and token counts come from OpenRouter's record of each request (see `CHECKS.md`). This compares one question and is not a benchmark.
 
-## Rules that are graded
+## Local model
 
-- Intent and spec exist before code. Plan is approved before implementation. The commit history shows it.
-- One pull request per feature, from a branch, reviewed before merge. Do not commit to `main` directly after the first commit.
-- `spec.md` states the **language** and the **model** for each component and why.
-- `ANNOTATION.md` answers the four questions for the finished project.
-- No secrets in the repo. `.claude/settings.local.json` and `.env` are ignored; the `.example` file shows the shape.
+Not tried. Local models are out of scope in the intent.
 
-## Submitting
+## Future goal: multi-turn chat
 
-Tag the commit you are submitting and put the repository URL plus the tag on Moodle:
-
-```
-git tag tp1-submitted
-git push origin tp1-submitted
-```
-
-Tags the course uses: `intent-spec`, `tp1-submitted`, `tp2-submitted`, `portfolio-final`.
-
-## Running the agent
-
-Copy `.claude/settings.local.json.example` to `.claude/settings.local.json` and fill in your OpenRouter key and model slugs, or use the `orclaude` launcher from the [course repository](https://github.com/kousen/ai-integration-course/tree/main/scripts).
+I want this to keep a conversation going eventually. That is out of scope for Week 2 and will be a spec question in Week 3. The program would have to keep a list of messages and resend the whole list each turn, so input tokens (and cost) grow with every question.
