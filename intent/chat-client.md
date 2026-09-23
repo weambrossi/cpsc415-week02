@@ -12,7 +12,7 @@ Me, a student learning how to use the OpenRouter API. Later, a quick way to ask 
 - Configuration comes from environment variables: `CHAT_BASE_URL` (API address), `CHAT_MODEL` (model ID), and `OPENROUTER_API_KEY` (key). Nothing secret in the code or the repository.
 - Changing only `CHAT_MODEL` must point it at a different model with no code change.
 - Model: `qwen/qwen3.8-27b:free` (free tier, so subject to OpenRouter rate limits).
-- `max_tokens` = 1000, leaving room for hidden reasoning tokens plus the visible answer.
+- `max_tokens` = 4000. (Amended 2026-09-22 during the build: at 1000, Qwen spent all 1000 tokens on hidden reasoning and returned an empty answer. A one-sentence answer used about 1,450 tokens, most of them reasoning.)
 - Default system prompt: "concise as possible".
 
 ## Not in scope
@@ -30,7 +30,7 @@ Me, a student learning how to use the OpenRouter API. Later, a quick way to ask 
 4. Every answer starts by calling me "sir".
 
 ## Open questions
-- Error handling: when the key is missing, the model ID is wrong, or the request fails, should it print a short message and exit, or show the raw error?
+- Error handling (settled during the build): print a short `Error:` message to stderr and exit with status 1, including the HTTP status and the provider's message.
 - Future goal: multi-turn chat with history. To be specified in Week 3, not built now.
 
 **Approved by:** Ethan Ambrossi, 2026-09-22
